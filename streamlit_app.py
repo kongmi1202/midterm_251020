@@ -182,7 +182,7 @@ def generate_keyboard_html(low_midi, high_midi):
             position: relative;
             width: 100%;
             max-width: 800px;
-            height: 150px; /* 전체 높이 */
+            height: 100px; /* 건반 전체 높이 줄임 */
             margin: 40px auto 10px auto;
             display: flex;
             box-sizing: border-box;
@@ -208,7 +208,7 @@ def generate_keyboard_html(low_midi, high_midi):
             position: relative;
             display: flex;
             justify-content: center;
-            align-items: flex-end;
+            align-items: flex-end; /* 레이블을 건반 아래쪽으로 */
             padding-bottom: 5px;
             font-size: 11px;
         }
@@ -218,7 +218,7 @@ def generate_keyboard_html(low_midi, high_midi):
         .black-key {
             position: absolute;
             width: 60%;
-            height: 60%;
+            height: 60%; /* 검은 건반 높이 조정 */
             background-color: #000;
             top: 0;
             z-index: 2; 
@@ -229,7 +229,7 @@ def generate_keyboard_html(low_midi, high_midi):
             top: 0;
             left: 0;
             right: 0;
-            height: 60%; 
+            height: 60%; /* 검은 건반 컨테이너 높이 조정 */
             display: flex;
             pointer-events: none; 
             z-index: 2;
@@ -245,10 +245,10 @@ def generate_keyboard_html(low_midi, high_midi):
         
         .label-text {
             font-weight: bold;
-            color: #1e40af;
+            color: #1e40af; /* C2, C3 등 레이블 색상 */
             position: absolute;
-            top: 5px;
-            font-size: 10px;
+            top: 5px; /* 건반 상단에 위치 */
+            font-size: 12px; /* 레이블 크기 */
         }
     </style>
     """
@@ -280,7 +280,7 @@ def generate_keyboard_html(low_midi, high_midi):
             
             # C음(옥타브 시작)에만 레이블 표시
             label_text = ''
-            if note_index == 0: 
+            if note_index == 0: # C음
                  label_text = f'<span class="label-text">{midi_to_note(midi)}</span>'
 
             white_keys_html += f"""
@@ -324,8 +324,7 @@ def generate_keyboard_html(low_midi, high_midi):
         <div class="white-key-container">
             {white_keys_html}
         </div>
-        <!-- 검은 건반 컨테이너는 흰 건반 컨테이너 위에 위치하며, position: absolute로 처리됩니다. -->
-        <div class="black-key-container"> 
+        <!-- 검은 건반 컨테이너는 흰 건반 컨테이너 위에 위치하며, position: absolute로 처리됩니다. --><div class="black-key-container"> 
             {black_keys_html}
         </div>
     </div>
