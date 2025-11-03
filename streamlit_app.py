@@ -1,14 +1,10 @@
 import streamlit as st
 import re
-import pandas as pd
-import altair as alt
-from streamlit.components.v1 import html as st_html # HTML/CSS 컴포넌트 출력을 위해 사용
 
 # 1. 핵심 데이터 정의
-# 모든 성종 분류 기준, 난이도별 추천곡, 특징 등을 포함합니다.
 VOICE_DATA = {
     'Bass (베이스)': {
-        'min_midi': 40, 'max_midi': 64, # E2 - E4
+        'min_midi': 40, 'max_midi': 64,
         'description': "웅장하고 깊은 저음을 가진 목소리입니다. 무대 전체를 감싸는 듯한 무게감과 카리스마가 느껴지며, 보통 느리고 진중한 노래에 잘 어울립니다. (남성의 가장 낮은 음역)",
         'singers': [
             {'name': "스트레이 키즈 펠릭스", 'songs': [
@@ -23,7 +19,7 @@ VOICE_DATA = {
         ]
     },
     'Baritone (바리톤)': {
-        'min_midi': 43, 'max_midi': 67, # G2 - G4
+        'min_midi': 43, 'max_midi': 67,
         'description': "중후하고 부드러운 중저음을 가진 목소리입니다. 가장 흔한 남성 음역대로, 감정을 표현하는 데 뛰어나 발라드나 미디엄 템포의 곡을 안정적으로 소화합니다.",
         'singers': [
             {'name': "존 박", 'songs': [
@@ -38,7 +34,7 @@ VOICE_DATA = {
         ]
     },
     'Tenor (테너)': {
-        'min_midi': 47, 'max_midi': 72, # B2 - C5
+        'min_midi': 47, 'max_midi': 72,
         'description': "힘차고 시원한 고음을 가진 목소리입니다. 맑고 높은 음역대로, 듣는 사람에게 짜릿한 쾌감을 주며 가창력이 강조되는 노래나 팝페라에 많이 활용됩니다. (남성의 가장 높은 음역)",
         'singers': [
             {'name': "방탄소년단 정국", 'songs': [
@@ -48,7 +44,7 @@ VOICE_DATA = {
         ]
     },
     'Alto (알토)': {
-        'min_midi': 52, 'max_midi': 76, # E3 - E5
+        'min_midi': 52, 'max_midi': 76,
         'description': "안정적이고 따뜻한 중저음을 가진 목소리입니다. 중저음 영역에서 가장 편안하고 풍부한 소리를 내며, 곡의 중심을 잡아주거나 무게감 있는 감정을 표현하는 데 좋습니다. (여성의 가장 낮은 음역)",
         'singers': [
             {'name': "이영지", 'songs': [
@@ -58,7 +54,7 @@ VOICE_DATA = {
         ]
     },
     'Mezzo-Soprano (메조소프라노)': {
-        'min_midi': 55, 'max_midi': 79, # G3 - G5
+        'min_midi': 55, 'max_midi': 79,
         'description': "부드럽고 유연한 중음역을 가진 목소리입니다. 다양한 음색을 소화할 수 있어 넓은 스펙트럼의 노래에 잘 어울리며, 감정과 기교를 잘 조화시킵니다.",
         'singers': [
             {'name': "이하이", 'songs': [
@@ -73,7 +69,7 @@ VOICE_DATA = {
         ]
     },
     'Soprano (소프라노)': {
-        'min_midi': 59, 'max_midi': 84, # B3 - C6
+        'min_midi': 59, 'max_midi': 84,
         'description': "화려하고 맑은 고음을 가진 목소리입니다. 여성의 가장 높은 음역대로, 밝고 청아한 느낌을 주며 가벼운 팝이나 뮤지컬 넘버, 클래식 아리아에 주로 활용됩니다.",
         'singers': [
             {'name': "아이유", 'songs': [
@@ -88,9 +84,8 @@ VOICE_DATA = {
     }
 }
 
-# 2. MIDI 변환 및 분류 로직 함수
 def note_to_midi(note_string):
-    """음계 문자열(C3, G4 등)을 MIDI 번호로 변환합니다. C4는 MIDI 60입니다."""
+    """음계 문자열을 MIDI 번호로 변환"""
     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     match = re.match(r'^([A-G]#?)(\d)$', note_string.upper())
     
@@ -104,21 +99,17 @@ def note_to_midi(note_string):
         return None
 
     note_index = notes.index(note)
-    # MIDI 공식: (옥타브 + 1) * 12 + 노트 인덱스.
     return (octave + 1) * 12 + note_index
 
 def midi_to_note(midi):
-    """MIDI 번호를 음계 문자열(예: C4)로 변환합니다."""
+    """MIDI 번호를 음계 문자열로 변환"""
     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     octave = (midi // 12) - 1
     note_index = midi % 12
     return notes[note_index] + str(octave)
 
 def find_voice_type(low_note_str, high_note_str):
-    """
-    사용자의 최저음(low_midi)이 각 성종의 최저음(v_min)과 얼마나 가까운지를
-    최우선 기준으로 사용하여 성종을 분류합니다. (최대 점수 목표)
-    """
+    """성종 분류"""
     low_midi = note_to_midi(low_note_str)
     high_midi = note_to_midi(high_note_str)
 
@@ -129,192 +120,129 @@ def find_voice_type(low_note_str, high_note_str):
         return {"error": "최고음이 최저음보다 높아야 합니다."}
 
     best_match = None
-    max_score = -float('inf') # 점수(Reward)를 최대화하는 성종을 찾습니다.
+    max_score = -float('inf')
 
     for voice_type, data in VOICE_DATA.items():
         v_min = data['min_midi']
         v_max = data['max_midi']
 
-        # 1. Low Note Match Reward (최우선 기준)
-        # 성종의 v_min과 사용자의 low_midi의 차이가 적을수록 높은 점수 획득
-        # 100점 시작, 차이 1당 5점씩 감점 (최대 점수 100)
-        low_match_reward = 100 - (abs(low_midi - v_min) * 5) 
-        
-        # 2. Range Exceeds Penalty (범위를 벗어날 경우 무거운 감점)
+        low_match_reward = 100 - (abs(low_midi - v_min) * 5)
         total_penalty = 0
         
-        # 2a. High Note Exceeded Penalty (사용자의 최고음이 성종의 최대 음역을 초과할 경우)
         if high_midi > v_max:
-            # 사용자의 최고음이 성종의 최고음을 넘어설 경우 무거운 페널티 (x15)
-            # 낮은 성종이 높은 음을 커버하지 못할 때 분류되는 것을 막기 위함 (예: 테너의 최고음 C5인데 사용자가 D5 입력)
             total_penalty += (high_midi - v_max) * 15
         
-        # 2b. Low Note Exceeded Penalty (사용자의 최저음이 성종의 최저 음역보다 낮을 경우)
         if low_midi < v_min:
-            # 성종이 커버하는 최저음보다 너무 낮으면 페널티 (x10)
             total_penalty += (v_min - low_midi) * 10
             
-        # 3. Total Score (총 점수)
         current_score = low_match_reward - total_penalty
         
-        # 4. 최적 매칭 업데이트 (최대 점수 선택)
         if current_score > max_score:
             max_score = current_score
             best_match = {'voice_type': voice_type, 'data': data}
             
-    # 최소 점수 기준으로 분류가 불가능할 때
-    if best_match and max_score > 30: 
+    if best_match and max_score > 30:
         best_match['low_midi'] = low_midi
         best_match['high_midi'] = high_midi
         return best_match
     else:
         return {"error": "입력하신 음역대가 표준 성종 범위에서 너무 많이 벗어나 분류가 어렵습니다. 다시 입력해 주세요."}
 
-
-# [NEW] 피아노 건반 UI 생성 및 사용자 음역대 표시 함수 (HTML/CSS 기반)
-def generate_keyboard_html(low_midi, high_midi):
-    """
-    CSS와 HTML을 사용하여 피아노 건반 UI를 생성하고 사용자 음역대를 강조합니다.
-    """
+def generate_piano_svg(low_midi, high_midi):
+    """SVG 기반 피아노 건반 시각화"""
     
-    start_midi = 36 # C2
-    end_midi = 84 # C6
+    start_midi = 36  # C2
+    end_midi = 84    # C6
     
-    # MIDI 음역대 (C2-C6)
-    all_midi_notes = list(range(start_midi, end_midi + 1))
+    white_width = 40
+    white_height = 150
+    black_width = 24
+    black_height = 95
     
-    # 1. CSS 스타일 정의
-    css_styles = """
-    <style>
-        .keyboard-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            height: 120px; /* 건반 전체 높이 */
-            margin: 40px auto 10px auto;
-            box-sizing: border-box;
-            background: #fff;
-            border: 1px solid #000;
-            border-radius: 4px;
-            display: flex; /* 건반을 flex로 나열 */
-            overflow: hidden;
-        }
-        .piano-key {
-            flex-grow: 1; /* 모든 건반이 동일한 너비를 가짐 */
-            height: 100%;
-            border-right: 1px solid #000;
-            box-sizing: border-box;
-            position: relative;
-            background-color: #fff; /* 기본 흰색 */
-            display: flex; /* 레이블 배치를 위한 flex */
-            flex-direction: column;
-            justify-content: flex-end; /* 레이블을 하단에 배치 */
-            cursor: default; /* 클릭 방지 */
-        }
-        .piano-key:last-child {
-            border-right: none;
-        }
-        
-        /* 검은 건반 스타일 (균일 폭 배열) */
-        .black-key-style {
-            background-color: #000;
-            color: #fff; /* 검은 건반의 레이블은 흰색 */
-        }
-        
-        /* 음역대 강조 스타일 */
-        .highlighted {
-            background-color: #fce7f3 !important; /* 연한 분홍색 강조 */
-            border-color: #db2777 !important;
-        }
-        .highlighted.black-key-style {
-            background-color: #db2777 !important; /* 진한 분홍색 강조 */
-        }
-        
-        /* C음 레이블 스타일 */
-        .label-text {
-            font-weight: bold;
-            color: #1e40af; /* C음 레이블 색상 */
-            font-size: 11px;
-            padding-bottom: 2px;
-            text-align: center;
-        }
-        .black-key-style .label-text {
-            color: #fff; /* 검은 건반 레이블은 흰색 */
-        }
-    </style>
-    """
+    # 흰 건반만 먼저 세기
+    white_keys = []
+    for midi in range(start_midi, end_midi + 1):
+        if midi % 12 in [0, 2, 4, 5, 7, 9, 11]:  # C, D, E, F, G, A, B
+            white_keys.append(midi)
     
-    # 2. 피아노 건반 구조 생성 (C2-C6)
-    keyboard_html = ""
-    total_keys = end_midi - start_midi + 1 
+    svg_width = len(white_keys) * white_width
+    svg_height = white_height + 60
     
-    for midi in all_midi_notes:
-        note_name = midi_to_note(midi)
-        note_index = midi % 12
+    svg = f'<svg width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">'
+    
+    # 배경
+    svg += f'<rect width="{svg_width}" height="{svg_height}" fill="#f0f0f0"/>'
+    
+    # 흰 건반 그리기
+    white_idx = 0
+    for midi in white_keys:
+        x = white_idx * white_width
         is_highlighted = low_midi <= midi <= high_midi
         
-        # C음(note_index 0)에만 레이블 표시
-        label_text = ''
-        if note_index == 0: 
-            label_text = f'<span class="label-text">{note_name}</span>'
-
-        # 흰 건반과 검은 건반 구분
-        is_white_key = note_index in [0, 2, 4, 5, 7, 9, 11] # C, D, E, F, G, A, B
+        fill = '#ff69b4' if is_highlighted else '#ffffff'
+        stroke = '#be185d' if is_highlighted else '#333333'
         
-        key_class = 'piano-key'
-        if not is_white_key:
-            key_class += ' black-key-style' # 검은 건반 스타일 적용
+        svg += f'<rect x="{x}" y="20" width="{white_width}" height="{white_height}" '
+        svg += f'fill="{fill}" stroke="{stroke}" stroke-width="2" rx="4"/>'
         
-        if is_highlighted:
-            key_class += ' highlighted'
-
-        keyboard_html += f"""
-        <div class="{key_class}" style="width: calc(100% / {total_keys});">
-            {label_text}
-        </div>
-        """
-
-    # 3. 최종 HTML 구성
-    keyboard_output = f"""
-    {css_styles}
-    <div class="keyboard-wrapper">
-        {keyboard_html}
+        # C 음에 라벨
+        if midi % 12 == 0:
+            note_name = midi_to_note(midi)
+            svg += f'<text x="{x + white_width/2}" y="{white_height + 45}" '
+            svg += f'text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">{note_name}</text>'
+        
+        white_idx += 1
+    
+    # 검은 건반 그리기
+    # 각 검은 건반의 위치를 흰 건반 인덱스 기준으로 계산
+    white_idx = 0
+    for midi in range(start_midi, end_midi + 1):
+        note = midi % 12
+        
+        # 흰 건반이면 인덱스 증가
+        if note in [0, 2, 4, 5, 7, 9, 11]:
+            white_idx += 1
+        # 검은 건반 그리기
+        elif note in [1, 3, 6, 8, 10]:  # C#, D#, F#, G#, A#
+            is_highlighted = low_midi <= midi <= high_midi
+            fill = '#c71585' if is_highlighted else '#000000'
+            
+            # 검은 건반의 x 위치 계산
+            # 이전 흰 건반의 오른쪽 끝에서 시작
+            x = (white_idx * white_width) - (black_width / 2)
+            
+            svg += f'<rect x="{x}" y="20" width="{black_width}" height="{black_height}" '
+            svg += f'fill="{fill}" stroke="#000000" stroke-width="1.5" rx="3"/>'
+    
+    svg += '</svg>'
+    
+    low_note = midi_to_note(low_midi)
+    high_note = midi_to_note(high_midi)
+    
+    info = f"""
+    <div style="text-align: center; margin-top: 20px;">
+        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{low_note}</span> 
+        <span style="font-size: 1.5em; color: #6b7280;">—</span>
+        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{high_note}</span> 
+        <p style="margin-top: 8px; color: #4b5563;">(입력하신 음역대가 분홍색으로 표시됩니다)</p>
     </div>
     """
     
-    # 4. 사용자 음역대 레이블
-    low_note_name = midi_to_note(low_midi)
-    high_note_name = midi_to_note(high_midi)
-    
-    info_html = f"""
-    <div style="text-align: center; margin-top: 10px;">
-        <span style="font-size: 1.5em; color: #dc2626; font-weight: bold;">{low_note_name}</span> 
-        &nbsp;—&nbsp; 
-        <span style="font-size: 1.5em; color: #dc2626; font-weight: bold;">{high_note_name}</span> 
-        <p style="margin-top: 5px; color: #4b5563;">(입력하신 음역대입니다)</p>
-    </div>
-    """
+    return f'<div style="overflow-x: auto; padding: 20px; background: #ffffff; border-radius: 8px;">{svg}{info}</div>'
 
-    # 최종 결과: 건반 HTML + 정보 HTML
-    return keyboard_output + info_html
-
-# 4. Streamlit UI 및 출력
-
+# Streamlit UI
 st.set_page_config(page_title="Voice Match", layout="centered")
 
 st.markdown("<h1 style='text-align: center; color: #1e40af;'>🎤 Voice Match</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>최저음과 최고음을 입력하여 나의 성종과 추천 가수를 찾아보세요!</p>", unsafe_allow_html=True)
 
-# 사용자 입력 섹션
 with st.container(border=True):
     st.subheader("음역대 입력")
-    # 빈칸으로 뜨도록 value="" 설정
-    low_note = st.text_input("최저음 입력 (예: C3, G2)", value="", max_chars=3).strip() 
+    low_note = st.text_input("최저음 입력 (예: C3, G2)", value="", max_chars=3).strip()
     high_note = st.text_input("최고음 입력 (예: G4, C5)", value="", max_chars=3).strip()
     
     find_button = st.button("내 성종 확인하기 🔍", type="primary", use_container_width=True)
 
-# 결과 출력
 if find_button:
     result = find_voice_type(low_note, high_note)
     
@@ -324,50 +252,32 @@ if find_button:
         st.success(f"🎉 당신의 성종은: {result['voice_type']}")
         
         data = result['data']
-        
-        # 성종 특징 표시
         st.markdown(f"**성종 특징:** *{data['description']}*")
         st.markdown("---")
         
-        # 시각화 출력 블록
         try:
-            # HTML/CSS 기반의 피아노 건반 UI 출력
-            st.subheader("나의 음역대 위치 시각화 (피아노 건반)")
-            
-            keyboard_html = generate_keyboard_html(
-                low_midi=result['low_midi'], 
-                high_midi=result['high_midi']
-            )
-            # st_html 컴포넌트를 사용하여 건반 UI를 안정적으로 출력합니다.
-            st_html(keyboard_html, height=300) 
+            st.subheader("나의 음역대 위치 시각화")
+            piano_html = generate_piano_svg(result['low_midi'], result['high_midi'])
+            st.markdown(piano_html, unsafe_allow_html=True)
             
         except Exception as e:
-            # 시각화 오류 발생 시 사용자에게 알림
-            st.warning(f"시각화 UI 생성 중 오류가 발생했습니다. (디버깅 정보: {e})")
+            st.warning(f"시각화 생성 중 오류: {e}")
 
         st.markdown("<h3 style='color: #4b5563;'>내 성종을 가진 가수와 난이도별 추천 노래:</h3>", unsafe_allow_html=True)
         
-        # 가수별 목록 표시 (필터링 로직 제거)
         for singer in data['singers']:
-            
-            # 노래 목록을 필터링 없이 그대로 사용
             filtered_songs = singer['songs']
             
-            if filtered_songs: # 노래가 있을 경우에만 가수 이름을 표시
+            if filtered_songs:
                 st.markdown(f"**<span style='color: #047857;'>{singer['name']}</span>**", unsafe_allow_html=True)
             
-                # 노래 목록 표시 (난이도 및 링크 스타일링)
                 for song in filtered_songs:
-                    level_style = "color: #2563eb;" # 하 (파란색)
+                    level_style = "color: #2563eb;"
                     if song['level'] == '상':
-                        level_style = "color: #dc2626;" # 상 (빨간색)
+                        level_style = "color: #dc2626;"
                     elif song['level'] == '중':
-                        level_style = "color: #059669;" # 중 (초록색)
+                        level_style = "color: #059669;"
                     
-                    # 재생 버튼 아이콘
-                    youtube_icon = "▶️"
-                    
-                    # HTML과 CSS를 사용하여 노래 정보와 재생 버튼을 같은 줄에 표시
                     song_markdown = f"""
                     <div style='background-color: #f3ffef; padding: 8px; border-radius: 6px; margin-bottom: 5px; border-left: 3px solid #6ee7b4; display: flex; align-items: center; justify-content: space-between;'>
                         <span style='flex-grow: 1;'>
@@ -376,7 +286,7 @@ if find_button:
                             <span style='color: #4b5563;'>{song['detail']}</span>
                         </span>
                         <a href="{song.get('link', '#')}" target="_blank" title="유튜브에서 노래 듣기">
-                            <span style='font-size: 1.5em; color: #ff0000; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);'>{youtube_icon}</span>
+                            <span style='font-size: 1.5em; color: #ff0000; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);'>▶️</span>
                         </a>
                     </div>
                     """
