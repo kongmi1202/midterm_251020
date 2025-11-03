@@ -116,8 +116,8 @@ def midi_to_note(midi):
 
 def find_voice_type(low_note_str, high_note_str):
     """
-    모든 성종에 대해, 최고음 매칭을 가장 강력하게 우선하도록 페널티 로직을 수정했습니다.
-    최소 페널티 점수를 가진 성종을 선택합니다.
+    사용자의 최저음(low_midi)이 각 성종의 최저음(v_min)과 얼마나 가까운지를
+    최우선 기준으로 사용하여 성종을 분류합니다. (최대 점수 목표)
     """
     low_midi = note_to_midi(low_note_str)
     high_midi = note_to_midi(high_note_str)
@@ -129,42 +129,41 @@ def find_voice_type(low_note_str, high_note_str):
         return {"error": "최고음이 최저음보다 높아야 합니다."}
 
     best_match = None
-    min_score = float('inf') # 페널티 점수(Score)를 최소화하는 성종을 찾습니다.
+    max_score = -float('inf') # 점수(Reward)를 최대화하는 성종을 찾습니다.
 
     for voice_type, data in VOICE_DATA.items():
         v_min = data['min_midi']
         v_max = data['max_midi']
 
-        # 1. Low Note Match Penalty (사용자의 최저음이 성종의 최저음 범위와 얼마나 다른지)
-        # 낮은 가중치 (x1)
-        low_dist_penalty = abs(low_midi - v_min) * 1 
+        # 1. Low Note Match Reward (최우선 기준)
+        # 성종의 v_min과 사용자의 low_midi의 차이가 적을수록 높은 점수 획득
+        # 100점 시작, 차이 1당 5점씩 감점 (최대 점수 100)
+        low_match_reward = 100 - (abs(low_midi - v_min) * 5) 
         
-        # 2. High Note Match Penalty (사용자의 최고음이 성종의 최고음 범위와 얼마나 다른지)
-        # 중간 가중치 (x3) - 최고음 매칭의 중요도를 높임
-        high_dist_penalty = abs(high_midi - v_max) * 3 
+        # 2. Range Exceeds Penalty (범위를 벗어날 경우 무거운 감점)
+        total_penalty = 0
         
-        # 3. High Note Exceeded Penalty (Critical: 사용자의 최고음이 성종의 최대 음역을 초과할 경우)
-        penalty_high_exceeds = 0
+        # 2a. High Note Exceeded Penalty (사용자의 최고음이 성종의 최대 음역을 초과할 경우)
         if high_midi > v_max:
-            # 사용자의 최고음이 성종의 최고음을 넘어설 경우 매우 무거운 페널티 (x15)
-            penalty_high_exceeds = (high_midi - v_max) * 15
+            # 사용자의 최고음이 성종의 최고음을 넘어설 경우 무거운 페널티 (x15)
+            # 낮은 성종이 높은 음을 커버하지 못할 때 분류되는 것을 막기 위함 (예: 테너의 최고음 C5인데 사용자가 D5 입력)
+            total_penalty += (high_midi - v_max) * 15
         
-        # 4. Low Note Exceeded Penalty (성종의 최저음을 초과하여 너무 낮을 경우)
-        penalty_low_exceeds = 0
+        # 2b. Low Note Exceeded Penalty (사용자의 최저음이 성종의 최저 음역보다 낮을 경우)
         if low_midi < v_min:
-            # 성종이 커버하는 최저음보다 너무 낮으면 페널티 (x5)
-            penalty_low_exceeds = (v_min - low_midi) * 5
+            # 성종이 커버하는 최저음보다 너무 낮으면 페널티 (x10)
+            total_penalty += (v_min - low_midi) * 10
+            
+        # 3. Total Score (총 점수)
+        current_score = low_match_reward - total_penalty
         
-        # 5. Total Score (모든 페널티 총합. 이 점수가 낮을수록 최적의 성종)
-        current_score = low_dist_penalty + high_dist_penalty + penalty_high_exceeds + penalty_low_exceeds
-        
-        # 6. 최적 매칭 업데이트 (최소 페널티 점수 선택)
-        if current_score < min_score:
-            min_score = current_score
+        # 4. 최적 매칭 업데이트 (최대 점수 선택)
+        if current_score > max_score:
+            max_score = current_score
             best_match = {'voice_type': voice_type, 'data': data}
             
-    # 최소 점수가 너무 높으면 분류가 어렵다고 판단합니다.
-    if best_match and min_score < 100: 
+    # 최소 점수 기준으로 분류가 불가능할 때
+    if best_match and max_score > 30: 
         best_match['low_midi'] = low_midi
         best_match['high_midi'] = high_midi
         return best_match
