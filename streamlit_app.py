@@ -1,5 +1,3 @@
-# Streamlit 기반 음역대별 가수 추천 웹 애플리케이션 (Python 재구현)
-
 import streamlit as st
 import re
 import pandas as pd
@@ -10,7 +8,7 @@ from streamlit.components.v1 import html as st_html # HTML/CSS 컴포넌트 출�
 # 모든 성종 분류 기준, 난이도별 추천곡, 특징 등을 포함합니다.
 VOICE_DATA = {
     'Bass (베이스)': {
-        'min_midi': 40, 'max_midi': 64,  # E2 - E4
+        'min_midi': 40, 'max_midi': 64, # E2 - E4
         'description': "웅장하고 깊은 저음을 가진 목소리입니다. 무대 전체를 감싸는 듯한 무게감과 카리스마가 느껴지며, 보통 느리고 진중한 노래에 잘 어울립니다. (남성의 가장 낮은 음역)",
         'singers': [
             {'name': "스트레이 키즈 펠릭스", 'songs': [
@@ -25,7 +23,7 @@ VOICE_DATA = {
         ]
     },
     'Baritone (바리톤)': {
-        'min_midi': 43, 'max_midi': 67,  # G2 - G4
+        'min_midi': 43, 'max_midi': 67, # G2 - G4
         'description': "중후하고 부드러운 중저음을 가진 목소리입니다. 가장 흔한 남성 음역대로, 감정을 표현하는 데 뛰어나 발라드나 미디엄 템포의 곡을 안정적으로 소화합니다.",
         'singers': [
             {'name': "존 박", 'songs': [
@@ -40,7 +38,7 @@ VOICE_DATA = {
         ]
     },
     'Tenor (테너)': {
-        'min_midi': 47, 'max_midi': 72,  # B2 - C5
+        'min_midi': 47, 'max_midi': 72, # B2 - C5
         'description': "힘차고 시원한 고음을 가진 목소리입니다. 맑고 높은 음역대로, 듣는 사람에게 짜릿한 쾌감을 주며 가창력이 강조되는 노래나 팝페라에 많이 활용됩니다. (남성의 가장 높은 음역)",
         'singers': [
             {'name': "방탄소년단 정국", 'songs': [
@@ -50,7 +48,7 @@ VOICE_DATA = {
         ]
     },
     'Alto (알토)': {
-        'min_midi': 52, 'max_midi': 76,  # E3 - E5
+        'min_midi': 52, 'max_midi': 76, # E3 - E5
         'description': "안정적이고 따뜻한 중저음을 가진 목소리입니다. 중저음 영역에서 가장 편안하고 풍부한 소리를 내며, 곡의 중심을 잡아주거나 무게감 있는 감정을 표현하는 데 좋습니다. (여성의 가장 낮은 음역)",
         'singers': [
             {'name': "이영지", 'songs': [
@@ -60,7 +58,7 @@ VOICE_DATA = {
         ]
     },
     'Mezzo-Soprano (메조소프라노)': {
-        'min_midi': 55, 'max_midi': 79,  # G3 - G5
+        'min_midi': 55, 'max_midi': 79, # G3 - G5
         'description': "부드럽고 유연한 중음역을 가진 목소리입니다. 다양한 음색을 소화할 수 있어 넓은 스펙트럼의 노래에 잘 어울리며, 감정과 기교를 잘 조화시킵니다.",
         'singers': [
             {'name': "이하이", 'songs': [
@@ -75,7 +73,7 @@ VOICE_DATA = {
         ]
     },
     'Soprano (소프라노)': {
-        'min_midi': 59, 'max_midi': 84,  # B3 - C6
+        'min_midi': 59, 'max_midi': 84, # B3 - C6
         'description': "화려하고 맑은 고음을 가진 목소리입니다. 여성의 가장 높은 음역대로, 밝고 청아한 느낌을 주며 가벼운 팝이나 뮤지컬 넘버, 클래식 아리아에 주로 활용됩니다.",
         'singers': [
             {'name': "아이유", 'songs': [
@@ -117,7 +115,10 @@ def midi_to_note(midi):
     return notes[note_index] + str(octave)
 
 def find_voice_type(low_note_str, high_note_str):
-    """사용자의 음역대를 가장 잘 포괄하는 성종을 찾아 반환합니다."""
+    """
+    모든 성종에 대해, 최고음 매칭을 가장 강력하게 우선하도록 페널티 로직을 수정했습니다.
+    최소 페널티 점수를 가진 성종을 선택합니다.
+    """
     low_midi = note_to_midi(low_note_str)
     high_midi = note_to_midi(high_note_str)
 
@@ -128,38 +129,43 @@ def find_voice_type(low_note_str, high_note_str):
         return {"error": "최고음이 최저음보다 높아야 합니다."}
 
     best_match = None
-    best_score = -1 
+    min_score = float('inf') # 페널티 점수(Score)를 최소화하는 성종을 찾습니다.
 
     for voice_type, data in VOICE_DATA.items():
         v_min = data['min_midi']
         v_max = data['max_midi']
 
-        # 1. 포괄된 길이 계산 (사용자의 음역대가 성종 범위와 겹치는 정도)
-        covered_low = max(low_midi, v_min)
-        covered_high = min(high_midi, v_max)
-        covered_range = max(0, covered_high - covered_low)
+        # 1. Low Note Match Penalty (사용자의 최저음이 성종의 최저음 범위와 얼마나 다른지)
+        # 낮은 가중치 (x1)
+        low_dist_penalty = abs(low_midi - v_min) * 1 
         
-        # 2. 페널티 계산 (성종 범위를 벗어난 정도)
-        penalty_low = max(0, v_min - low_midi) * 2 
-        penalty_high = max(0, high_midi - v_max) * 2 
-
-        # 3. 점수 계산 (포괄된 범위가 넓고, 벗어난 정도가 작을수록 높은 점수)
-        current_score = covered_range - penalty_low - penalty_high
-
-        # 4. 최적 매칭 업데이트
-        if current_score > best_score:
-            best_score = current_score
+        # 2. High Note Match Penalty (사용자의 최고음이 성종의 최고음 범위와 얼마나 다른지)
+        # 중간 가중치 (x3) - 최고음 매칭의 중요도를 높임
+        high_dist_penalty = abs(high_midi - v_max) * 3 
+        
+        # 3. High Note Exceeded Penalty (Critical: 사용자의 최고음이 성종의 최대 음역을 초과할 경우)
+        penalty_high_exceeds = 0
+        if high_midi > v_max:
+            # 사용자의 최고음이 성종의 최고음을 넘어설 경우 매우 무거운 페널티 (x15)
+            penalty_high_exceeds = (high_midi - v_max) * 15
+        
+        # 4. Low Note Exceeded Penalty (성종의 최저음을 초과하여 너무 낮을 경우)
+        penalty_low_exceeds = 0
+        if low_midi < v_min:
+            # 성종이 커버하는 최저음보다 너무 낮으면 페널티 (x5)
+            penalty_low_exceeds = (v_min - low_midi) * 5
+        
+        # 5. Total Score (모든 페널티 총합. 이 점수가 낮을수록 최적의 성종)
+        current_score = low_dist_penalty + high_dist_penalty + penalty_high_exceeds + penalty_low_exceeds
+        
+        # 6. 최적 매칭 업데이트 (최소 페널티 점수 선택)
+        if current_score < min_score:
+            min_score = current_score
             best_match = {'voice_type': voice_type, 'data': data}
-        
-        # 완벽 포함 시 보너스 점수 (정확한 매칭을 선호)
-        if covered_low <= low_midi and covered_high >= high_midi:
-            current_score += 100 
-            if current_score > best_score:
-                 best_score = current_score
-                 best_match = {'voice_type': voice_type, 'data': data}
-
-    if best_match and best_score > -10: 
-        best_match['low_midi'] = low_midi # 시각화를 위해 MIDI 값 추가
+            
+    # 최소 점수가 너무 높으면 분류가 어렵다고 판단합니다.
+    if best_match and min_score < 100: 
+        best_match['low_midi'] = low_midi
         best_match['high_midi'] = high_midi
         return best_match
     else:
@@ -170,11 +176,13 @@ def find_voice_type(low_note_str, high_note_str):
 def generate_keyboard_html(low_midi, high_midi):
     """
     CSS와 HTML을 사용하여 피아노 건반 UI를 생성하고 사용자 음역대를 강조합니다.
-    (검은 건반 배열 오류 수정 및 C음 레이블 표시)
     """
     
     start_midi = 36 # C2
-    end_midi = 84   # C6
+    end_midi = 84 # C6
+    
+    # MIDI 음역대 (C2-C6)
+    all_midi_notes = list(range(start_midi, end_midi + 1))
     
     # 1. CSS 스타일 정의
     css_styles = """
@@ -188,146 +196,90 @@ def generate_keyboard_html(low_midi, high_midi):
             box-sizing: border-box;
             background: #fff;
             border: 1px solid #000;
-            border-radius: 8px;
+            border-radius: 4px;
+            display: flex; /* 건반을 flex로 나열 */
+            overflow: hidden;
         }
-        .white-key-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            position: relative;
-            z-index: 1; 
-        }
-        .white-key {
-            flex-grow: 1;
+        .piano-key {
+            flex-grow: 1; /* 모든 건반이 동일한 너비를 가짐 */
             height: 100%;
             border-right: 1px solid #000;
-            background-color: #fff;
             box-sizing: border-box;
             position: relative;
+            background-color: #fff; /* 기본 흰색 */
+            display: flex; /* 레이블 배치를 위한 flex */
+            flex-direction: column;
+            justify-content: flex-end; /* 레이블을 하단에 배치 */
+            cursor: default; /* 클릭 방지 */
         }
-        .white-key:last-child {
+        .piano-key:last-child {
             border-right: none;
         }
         
-        /* 검은 건반 스타일: 너비를 줄이고 위치를 조정 */
-        .black-key-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60%; 
-            pointer-events: none; 
-            z-index: 2;
-        }
-        .black-key {
-            position: absolute;
-            /* width: 3%; 정도의 비율로 직접 계산하여 inline style로 적용할 것 */
-            height: 100%;
+        /* 검은 건반 스타일 (균일 폭 배열) */
+        .black-key-style {
             background-color: #000;
-            top: 0;
-            border-radius: 0 0 3px 3px;
+            color: #fff; /* 검은 건반의 레이블은 흰색 */
         }
         
         /* 음역대 강조 스타일 */
-        .highlighted-white {
+        .highlighted {
             background-color: #fce7f3 !important; /* 연한 분홍색 강조 */
+            border-color: #db2777 !important;
         }
-        .highlighted-black {
+        .highlighted.black-key-style {
             background-color: #db2777 !important; /* 진한 분홍색 강조 */
         }
         
         /* C음 레이블 스타일 */
         .label-text {
             font-weight: bold;
-            color: #1e40af; /* 레이블 색상 */
-            position: absolute;
-            top: 5px; /* 건반 위쪽에 위치 */
+            color: #1e40af; /* C음 레이블 색상 */
             font-size: 11px;
-            width: 100%;
+            padding-bottom: 2px;
             text-align: center;
+        }
+        .black-key-style .label-text {
+            color: #fff; /* 검은 건반 레이블은 흰색 */
         }
     </style>
     """
     
-    # 2. 피아노 건반 구조 생성
-    white_keys_html = ""
-    black_keys_html = ""
-    
-    all_midi_notes = list(range(start_midi, end_midi + 1))
-    
-    white_note_indices = [0, 2, 4, 5, 7, 9, 11] # C, D, E, F, G, A, B
-    total_white_keys = len([m for m in all_midi_notes if m % 12 in white_note_indices])
-    key_width_pc = 100 / total_white_keys
-    
-    # MIDI 번호와 흰 건반 인덱스 매핑
-    white_key_midi_map = [midi for midi in all_midi_notes if midi % 12 in white_note_indices]
-    
-    white_key_count = 0
-    black_key_width_pc = key_width_pc * 0.55 # 검은 건반 너비 (흰 건반 너비의 55% 정도로 설정)
+    # 2. 피아노 건반 구조 생성 (C2-C6)
+    keyboard_html = ""
+    total_keys = end_midi - start_midi + 1 
     
     for midi in all_midi_notes:
+        note_name = midi_to_note(midi)
         note_index = midi % 12
-        is_white = note_index in white_note_indices
-        is_black = not is_white
-        
         is_highlighted = low_midi <= midi <= high_midi
         
-        if is_white:
-            
-            # 1. 흰 건반 HTML 생성
-            white_key_count += 1
-            
-            label_text = ''
-            # C음(note_index 0)에만 레이블 표시
-            if note_index == 0: 
-                 label_text = f'<span class="label-text">{midi_to_note(midi)}</span>'
-                 
-            white_keys_html += f"""
-            <div class="white-key {'highlighted-white' if is_highlighted else ''}" style="width: {key_width_pc}%;">
-                {label_text}
-            </div>
-            """
-            
-        elif is_black:
-            # 2. 검은 건반 HTML 생성
-            
-            # 검은 건반이 위치해야 할 흰 건반의 인덱스를 찾습니다. (C#은 C, D#은 D 등)
-            # note_index 1(C#) -> 0(C), 3(D#) -> 2(D), 6(F#) -> 5(F), 8(G#) -> 7(G), 10(A#) -> 9(A)
-            base_midi_for_black = midi - 1
-            if base_midi_for_black % 12 == 4: base_midi_for_black -= 1 # E와 F 사이를 건너뛰기 위함
-            if base_midi_for_black % 12 == 11: base_midi_for_black -= 1 # B와 C 사이를 건너뛰기 위함
+        # C음(note_index 0)에만 레이블 표시
+        label_text = ''
+        if note_index == 0: 
+            label_text = f'<span class="label-text">{note_name}</span>'
 
-            try:
-                base_white_index = white_key_midi_map.index(base_midi_for_black)
-                
-                # 검은 건반의 왼쪽 시작 위치 (퍼센트)
-                # 검은 건반은 해당 흰 건반 오른쪽 경계 근처에 위치해야 합니다.
-                # base_start_pc: 검은 건반이 속한 흰 건반의 왼쪽 시작 위치
-                base_start_pc = base_white_index * key_width_pc
-                
-                # 검은 건반 위치: 흰 건반 시작점 + (흰 건반 너비 * 0.75) - (검은 건반 너비 / 2)
-                # 0.75는 검은 건반을 흰 건반의 3/4 지점에 가깝게 배치하여 시각적 중앙으로 보이게 함
-                left_offset_pc = base_start_pc + (key_width_pc * 0.75) - (black_key_width_pc / 2)
-                
-                black_keys_html += f"""
-                <div class="key black-key {'highlighted-black' if is_highlighted else ''}" style="left: {left_offset_pc}%; width: {black_key_width_pc}%;">
-                </div>
-                """
-            except ValueError:
-                # 데이터 범위 밖의 건반은 건너뜁니다.
-                pass 
-                
-    # 3. 최종 HTML 구성 (검은 건반이 흰 건반 위에 겹쳐지도록)
+        # 흰 건반과 검은 건반 구분
+        is_white_key = note_index in [0, 2, 4, 5, 7, 9, 11] # C, D, E, F, G, A, B
+        
+        key_class = 'piano-key'
+        if not is_white_key:
+            key_class += ' black-key-style' # 검은 건반 스타일 적용
+        
+        if is_highlighted:
+            key_class += ' highlighted'
+
+        keyboard_html += f"""
+        <div class="{key_class}" style="width: calc(100% / {total_keys});">
+            {label_text}
+        </div>
+        """
+
+    # 3. 최종 HTML 구성
     keyboard_output = f"""
     {css_styles}
     <div class="keyboard-wrapper">
-        <div class="white-key-container">
-            {white_keys_html}
-        </div>
-        <!-- 검은 건반 컨테이너는 흰 건반 컨테이너 위에 위치하며, position: absolute로 처리됩니다. -->
-        <div class="black-key-container"> 
-            {black_keys_html}
-        </div>
+        {keyboard_html}
     </div>
     """
     
@@ -388,7 +340,6 @@ if find_button:
                 high_midi=result['high_midi']
             )
             # st_html 컴포넌트를 사용하여 건반 UI를 안정적으로 출력합니다.
-            # height를 300으로 늘려 충분한 공간을 확보합니다.
             st_html(keyboard_html, height=300) 
             
         except Exception as e:
