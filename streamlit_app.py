@@ -122,31 +122,21 @@ def find_voice_type(low_note_str, high_note_str):
     # 음역대 범위 계산
     range_width = high_midi - low_midi
     
-    # 1단계: 최저음이 속한 성종 그룹 찾기
-    candidate_voices = []
-    
-    for voice_type, data in VOICE_DATA.items():
-        v_min = data['min_midi']
-        v_max = data['max_midi']
-        
-        # 최저음이 해당 성종의 음역대 안에 있으면 후보에 추가
-        if v_min <= low_midi <= v_max:
-            candidate_voices.append({'voice_type': voice_type, 'data': data})
-    
-    # 후보가 없으면 최저음에 가장 가까운 성종 선택
-    if not candidate_voices:
+    # 1단계: 음역대가 좁으면(12 이하, 1옥타브 이내) 최저음 기준으로 판단
+    if range_width <= 12:
+        best_match = None
         min_distance = float('inf')
+        
         for voice_type, data in VOICE_DATA.items():
             v_min = data['min_midi']
             distance = abs(low_midi - v_min)
             
             if distance < min_distance:
                 min_distance = distance
-                candidate_voices = [{'voice_type': voice_type, 'data': data}]
+                best_match = {'voice_type': voice_type, 'data': data}
     
-    # 2단계: 음역대가 넓으면(24 이상, 2옥타브) 최고음 기준으로 재평가
-    if range_width >= 24:
-        # 모든 성종 중에서 최고음에 가장 가까운 것 선택
+    # 2단계: 음역대가 넓으면(24 이상, 2옥타브) 최고음 기준으로 판단
+    elif range_width >= 24:
         best_match = None
         min_high_distance = float('inf')
         
@@ -157,8 +147,31 @@ def find_voice_type(low_note_str, high_note_str):
             if distance < min_high_distance:
                 min_high_distance = distance
                 best_match = {'voice_type': voice_type, 'data': data}
+    
+    # 3단계: 중간 범위(12~24)일 때는 최저음이 속한 그룹 내에서 최고음으로 판단
     else:
-        # 음역대가 좁으면 후보 그룹 내에서 최고음에 가장 가까운 성종 선택
+        candidate_voices = []
+        
+        for voice_type, data in VOICE_DATA.items():
+            v_min = data['min_midi']
+            v_max = data['max_midi']
+            
+            # 최저음이 해당 성종의 음역대 안에 있으면 후보에 추가
+            if v_min <= low_midi <= v_max:
+                candidate_voices.append({'voice_type': voice_type, 'data': data})
+        
+        # 후보가 없으면 최저음에 가장 가까운 성종 선택
+        if not candidate_voices:
+            min_distance = float('inf')
+            for voice_type, data in VOICE_DATA.items():
+                v_min = data['min_midi']
+                distance = abs(low_midi - v_min)
+                
+                if distance < min_distance:
+                    min_distance = distance
+                    candidate_voices = [{'voice_type': voice_type, 'data': data}]
+        
+        # 후보 그룹 내에서 최고음에 가장 가까운 성종 선택
         best_match = None
         min_high_distance = float('inf')
         
