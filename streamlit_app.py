@@ -88,13 +88,13 @@ def note_to_midi(note_string):
     """음계 문자열을 MIDI 번호로 변환"""
     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     match = re.match(r'^([A-G]#?)(\d)$', note_string.upper())
-    
+   
     if not match:
         return None
 
     note = match.group(1)
     octave = int(match.group(2))
-    
+   
     if note not in notes:
         return None
 
@@ -115,33 +115,63 @@ def find_voice_type(low_note_str, high_note_str):
 
     if low_midi is None or high_midi is None:
         return {"error": "올바른 음계 형식(예: C3, G4)으로 입력해 주세요."}
-    
+   
     if low_midi >= high_midi:
         return {"error": "최고음이 최저음보다 높아야 합니다."}
 
-    best_match = None
-    max_score = -float('inf')
-
+    # 음역대 범위 계산
+    range_width = high_midi - low_midi
+    
+    # 1단계: 최저음이 속한 성종 그룹 찾기
+    candidate_voices = []
+    
     for voice_type, data in VOICE_DATA.items():
         v_min = data['min_midi']
         v_max = data['max_midi']
-
-        low_match_reward = 100 - (abs(low_midi - v_min) * 5)
-        total_penalty = 0
         
-        if high_midi > v_max:
-            total_penalty += (high_midi - v_max) * 15
-        
-        if low_midi < v_min:
-            total_penalty += (v_min - low_midi) * 10
+        # 최저음이 해당 성종의 음역대 안에 있으면 후보에 추가
+        if v_min <= low_midi <= v_max:
+            candidate_voices.append({'voice_type': voice_type, 'data': data})
+    
+    # 후보가 없으면 최저음에 가장 가까운 성종 선택
+    if not candidate_voices:
+        min_distance = float('inf')
+        for voice_type, data in VOICE_DATA.items():
+            v_min = data['min_midi']
+            distance = abs(low_midi - v_min)
             
-        current_score = low_match_reward - total_penalty
+            if distance < min_distance:
+                min_distance = distance
+                candidate_voices = [{'voice_type': voice_type, 'data': data}]
+    
+    # 2단계: 음역대가 넓으면(24 이상, 2옥타브) 최고음 기준으로 재평가
+    if range_width >= 24:
+        # 모든 성종 중에서 최고음에 가장 가까운 것 선택
+        best_match = None
+        min_high_distance = float('inf')
         
-        if current_score > max_score:
-            max_score = current_score
-            best_match = {'voice_type': voice_type, 'data': data}
+        for voice_type, data in VOICE_DATA.items():
+            v_max = data['max_midi']
+            distance = abs(high_midi - v_max)
             
-    if best_match and max_score > 30:
+            if distance < min_high_distance:
+                min_high_distance = distance
+                best_match = {'voice_type': voice_type, 'data': data}
+    else:
+        # 음역대가 좁으면 후보 그룹 내에서 최고음에 가장 가까운 성종 선택
+        best_match = None
+        min_high_distance = float('inf')
+        
+        for candidate in candidate_voices:
+            data = candidate['data']
+            v_max = data['max_midi']
+            distance = abs(high_midi - v_max)
+            
+            if distance < min_high_distance:
+                min_high_distance = distance
+                best_match = candidate
+           
+    if best_match:
         best_match['low_midi'] = low_midi
         best_match['high_midi'] = high_midi
         return best_match
@@ -150,55 +180,55 @@ def find_voice_type(low_note_str, high_note_str):
 
 def generate_piano_svg(low_midi, high_midi):
     """SVG 기반 피아노 건반 시각화"""
-    
+   
     start_midi = 36  # C2
     end_midi = 84    # C6
-    
+   
     white_width = 40
     white_height = 150
     black_width = 24
     black_height = 95
-    
+   
     # 흰 건반만 먼저 세기
     white_keys = []
     for midi in range(start_midi, end_midi + 1):
         if midi % 12 in [0, 2, 4, 5, 7, 9, 11]:  # C, D, E, F, G, A, B
             white_keys.append(midi)
-    
+   
     svg_width = len(white_keys) * white_width
     svg_height = white_height + 60
-    
+   
     svg = f'<svg width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">'
-    
+   
     # 배경
     svg += f'<rect width="{svg_width}" height="{svg_height}" fill="#f0f0f0"/>'
-    
+   
     # 흰 건반 그리기
     white_idx = 0
     for midi in white_keys:
         x = white_idx * white_width
         is_highlighted = low_midi <= midi <= high_midi
-        
+       
         fill = '#ff69b4' if is_highlighted else '#ffffff'
         stroke = '#be185d' if is_highlighted else '#333333'
-        
+       
         svg += f'<rect x="{x}" y="20" width="{white_width}" height="{white_height}" '
         svg += f'fill="{fill}" stroke="{stroke}" stroke-width="2" rx="4"/>'
-        
+       
         # C 음에 라벨
         if midi % 12 == 0:
             note_name = midi_to_note(midi)
             svg += f'<text x="{x + white_width/2}" y="{white_height + 45}" '
             svg += f'text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">{note_name}</text>'
-        
+       
         white_idx += 1
-    
+   
     # 검은 건반 그리기
     # 각 검은 건반의 위치를 흰 건반 인덱스 기준으로 계산
     white_idx = 0
     for midi in range(start_midi, end_midi + 1):
         note = midi % 12
-        
+       
         # 흰 건반이면 인덱스 증가
         if note in [0, 2, 4, 5, 7, 9, 11]:
             white_idx += 1
@@ -206,28 +236,28 @@ def generate_piano_svg(low_midi, high_midi):
         elif note in [1, 3, 6, 8, 10]:  # C#, D#, F#, G#, A#
             is_highlighted = low_midi <= midi <= high_midi
             fill = '#c71585' if is_highlighted else '#000000'
-            
+           
             # 검은 건반의 x 위치 계산
             # 이전 흰 건반의 오른쪽 끝에서 시작
             x = (white_idx * white_width) - (black_width / 2)
-            
+           
             svg += f'<rect x="{x}" y="20" width="{black_width}" height="{black_height}" '
             svg += f'fill="{fill}" stroke="#000000" stroke-width="1.5" rx="3"/>'
-    
+   
     svg += '</svg>'
-    
+   
     low_note = midi_to_note(low_midi)
     high_note = midi_to_note(high_midi)
-    
+   
     info = f"""
     <div style="text-align: center; margin-top: 20px;">
-        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{low_note}</span> 
+        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{low_note}</span>
         <span style="font-size: 1.5em; color: #6b7280;">—</span>
-        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{high_note}</span> 
+        <span style="font-size: 1.8em; color: #dc2626; font-weight: bold;">{high_note}</span>
         <p style="margin-top: 8px; color: #4b5563;">(입력하신 음역대가 분홍색으로 표시됩니다)</p>
     </div>
     """
-    
+   
     return f'<div style="overflow-x: auto; padding: 20px; background: #ffffff; border-radius: 8px;">{svg}{info}</div>'
 
 # Streamlit UI
@@ -240,49 +270,49 @@ with st.container(border=True):
     st.subheader("음역대 입력")
     low_note = st.text_input("최저음 입력 (예: C3, G2)", value="", max_chars=3).strip()
     high_note = st.text_input("최고음 입력 (예: G4, C5)", value="", max_chars=3).strip()
-    
+   
     find_button = st.button("내 성종 확인하기 🔍", type="primary", use_container_width=True)
 
 if find_button:
     result = find_voice_type(low_note, high_note)
-    
+   
     if "error" in result:
         st.error(result['error'])
     else:
         st.success(f"🎉 당신의 성종은: {result['voice_type']}")
-        
+       
         data = result['data']
         st.markdown(f"**성종 특징:** *{data['description']}*")
         st.markdown("---")
-        
+       
         try:
             st.subheader("나의 음역대 위치 시각화")
             piano_html = generate_piano_svg(result['low_midi'], result['high_midi'])
             st.markdown(piano_html, unsafe_allow_html=True)
-            
+           
         except Exception as e:
             st.warning(f"시각화 생성 중 오류: {e}")
 
         st.markdown("<h3 style='color: #4b5563;'>내 성종을 가진 가수와 난이도별 추천 노래:</h3>", unsafe_allow_html=True)
-        
+       
         for singer in data['singers']:
             filtered_songs = singer['songs']
-            
+           
             if filtered_songs:
                 st.markdown(f"**<span style='color: #047857;'>{singer['name']}</span>**", unsafe_allow_html=True)
-            
+           
                 for song in filtered_songs:
                     level_style = "color: #2563eb;"
                     if song['level'] == '상':
                         level_style = "color: #dc2626;"
                     elif song['level'] == '중':
                         level_style = "color: #059669;"
-                    
+                   
                     song_markdown = f"""
                     <div style='background-color: #f3ffef; padding: 8px; border-radius: 6px; margin-bottom: 5px; border-left: 3px solid #6ee7b4; display: flex; align-items: center; justify-content: space-between;'>
                         <span style='flex-grow: 1;'>
                             <span style='{level_style}; font-weight: bold; margin-right: 5px;'>({song['level']})</span>
-                            <span class='font-bold'>{song['title']}</span>: 
+                            <span class='font-bold'>{song['title']}</span>:
                             <span style='color: #4b5563;'>{song['detail']}</span>
                         </span>
                         <a href="{song.get('link', '#')}" target="_blank" title="유튜브에서 노래 듣기">
