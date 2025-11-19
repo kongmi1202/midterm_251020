@@ -5,22 +5,22 @@ import re
 VOICE_DATA = {
     'Bass (베이스)': {
         'min_midi': 40, 'max_midi': 64,
-        'description': "웅장하고 깊은 저음을 가진 목소리입니다. 무대 전체를 감싸는 듯한 무게감과 카리스마가 느껴지며, 보통 느리고 진중한 노래에 잘 어울립니다. (남성의 가장 낮은 음역)",
+        'description': "남성의 가장 낮은 음역으로, 웅장하고 깊은 저음을 가진 목소리입니다. 무대 전체를 감싸는 듯한 무게감과 카리스마가 느껴지며, 합창이나 중창에서 주로 저음을 담당합니다.",
         'singers': [
-            {'name': "스트레이 키즈 펠릭스", 'songs': [
+            {'name': "필릭스", 'songs': [
                 {'title': "God's Menu", 'level': "하", 'detail': "톡 쏘는 낮은 톤 위주로, 특유의 낮은 목소리만 잘 살리면 난이도가 낮아요.", 'link': "https://www.youtube.com/results?search_query=스트레이키즈+God's+Menu"},
                 {'title': "MIROH", 'level': "중", 'detail': "다이내믹한 랩과 보컬 연결이 요구되어 리듬감이 중요합니다.", 'link': "https://www.youtube.com/results?search_query=스트레이키즈+MIROH"},
-                {'title': "Seoul (Prod. HONNE)", 'level': "상", 'detail': "섬세한 감정 표현과 넓은 다이내믹 레인지를 요구하며, 느린 템포에서 집중력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+Seoul"}
-            ]},
-            {'name': "방탄소년단 RM", 'songs': [
+            ]},  
+            {'name': "RM", 'songs': [
                 {'title': "Change (with Wale)", 'level': "하", 'detail': "안정적인 랩 플로우가 중심이며, 보컬 음역대가 평이합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+Change+Wale"},
                 {'title': "wild flower", 'level': "중", 'detail': "깊은 감성과 넓은 음역대 랩을 요구하여 표현력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+wild+flower"}
-            ]}
+                {'title': "Seoul (Prod. HONNE)", 'level': "상", 'detail': "섬세한 감정 표현과 넓은 다이내믹 레인지를 요구하며, 느린 템포에서 집중력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+Seoul"}
+            ]}            
         ]
     },
     'Baritone (바리톤)': {
         'min_midi': 43, 'max_midi': 67,
-        'description': "중후하고 부드러운 중저음을 가진 목소리입니다. 가장 흔한 남성 음역대로, 감정을 표현하는 데 뛰어나 발라드나 미디엄 템포의 곡을 안정적으로 소화합니다.",
+        'description': "남성의 중간 음역으로, 중후하고 부드러운 중저음을 가진 목소리입니다. 가장 흔한 남성 음역대로, 변성기가 지난 남자는 보통 이 음역대를 가진다고 보면 됩니다.",
         'singers': [
             {'name': "존 박", 'songs': [
                 {'title': "철부지", 'level': "하", 'detail': "중저음 중심의 서정적인 곡으로, 부드러운 음색 표현에 집중하기 좋아요.", 'link': "https://www.youtube.com/results?search_query=존박+철부지"},
@@ -35,17 +35,21 @@ VOICE_DATA = {
     },
     'Tenor (테너)': {
         'min_midi': 47, 'max_midi': 72,
-        'description': "힘차고 시원한 고음을 가진 목소리입니다. 맑고 높은 음역대로, 듣는 사람에게 짜릿한 쾌감을 주며 가창력이 강조되는 노래나 팝페라에 많이 활용됩니다. (남성의 가장 높은 음역)",
+        'description': "남성의 가장 높은 음역으로, 힘차고 시원한 고음을 가진 목소리입니다. 가창력이 강조되는 노래에 테너 음역이 많이 쓰입니다.",
         'singers': [
-            {'name': "방탄소년단 정국", 'songs': [
+            {'name': "정국", 'songs': [
                 {'title': "Seven (feat. Latto)", 'level': "하", 'detail': "쉬운 템포와 편안한 중음역 보컬로 리듬감을 연습하기 좋아요.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+정국+Seven"},
                 {'title': "Standing Next to You", 'level': "중", 'detail': "다이내믹한 고음과 리듬감이 요구되어 안정적인 발성이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+정국+Standing+Next+to+You"}
+            ]}
+            {'name': "태양", 'songs': [
+                {'title': "눈, 코, 입", 'level': "상", 'detail': "비교적 빠른 템포에 많은 가사가 붙어요. 고음역 후렴에서 진성과 가성을 넘나드는 목소리 전환 테크닉이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=태양+눈코입"},
+                {'title': "VIBE", 'level': "중", 'detail': "높은 고음이 없거나 적은 편이지만, 리듬감과 딕션을 잘 살리는 것이 중요합니다.", 'link': "https://www.youtube.com/results?search_query=태양+VIBE"}
             ]}
         ]
     },
     'Alto (알토)': {
         'min_midi': 52, 'max_midi': 76,
-        'description': "안정적이고 따뜻한 중저음을 가진 목소리입니다. 중저음 영역에서 가장 편안하고 풍부한 소리를 내며, 곡의 중심을 잡아주거나 무게감 있는 감정을 표현하는 데 좋습니다. (여성의 가장 낮은 음역)",
+        'description': "여자의 가장 낮은 음역으로, 안정적이고 따뜻한 중저음을 가진 목소리입니다. 중저음 영역에서 가장 편안하고 풍부한 소리를 내며, 곡의 중심을 잡아주거나 무게감 있는 감정을 표현하는 데 좋습니다.",
         'singers': [
             {'name': "이영지", 'songs': [
                 {'title': "NOT SORRY", 'level': "하", 'detail': "리듬감이 중심이며, 보컬 음역대는 평이하여 랩 연습과 함께 좋습니다.", 'link': "https://www.youtube.com/results?search_query=이영지+NOT+SORRY"},
@@ -55,7 +59,7 @@ VOICE_DATA = {
     },
     'Mezzo-Soprano (메조소프라노)': {
         'min_midi': 55, 'max_midi': 79,
-        'description': "부드럽고 유연한 중음역을 가진 목소리입니다. 다양한 음색을 소화할 수 있어 넓은 스펙트럼의 노래에 잘 어울리며, 감정과 기교를 잘 조화시킵니다.",
+        'description': "여자의 중간 음역으로, 부드럽고 유연한 중음역을 가진 목소리입니다. 다양한 음색을 소화할 수 있어 넓은 스펙트럼의 노래에 잘 어울리며, 감정과 기교를 잘 조화시킵니다.",
         'singers': [
             {'name': "이하이", 'songs': [
                 {'title': "한숨", 'level': "하", 'detail': "느린 템포, 중음역 중심의 감성 발라드로, 감정 표현에 집중하기 좋아요.", 'link': "https://www.youtube.com/results?search_query=이하이+한숨"},
@@ -70,7 +74,7 @@ VOICE_DATA = {
     },
     'Soprano (소프라노)': {
         'min_midi': 59, 'max_midi': 84,
-        'description': "화려하고 맑은 고음을 가진 목소리입니다. 여성의 가장 높은 음역대로, 밝고 청아한 느낌을 주며 가벼운 팝이나 뮤지컬 넘버, 클래식 아리아에 주로 활용됩니다.",
+        'description': "여성의 가장 높은 음역으로, 화려하고 맑은 고음을 가진 목소리입니다. 밝고 청아한 느낌을 주며 가벼운 팝이나 뮤지컬 넘버, 클래식 아리아에 주로 활용됩니다.",
         'singers': [
             {'name': "아이유", 'songs': [
                 {'title': "밤편지", 'level': "하", 'detail': "비교적 느린 템포로, 잔잔하게 감정을 표현하기 좋아 음역대가 평이해요.", 'link': "https://www.youtube.com/results?search_query=아이유+밤편지"},
