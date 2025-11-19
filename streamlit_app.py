@@ -13,7 +13,7 @@ VOICE_DATA = {
             ]},  
             {'name': "RM", 'songs': [
                 {'title': "Change (with Wale)", 'level': "하", 'detail': "안정적인 랩 플로우가 중심이며, 보컬 음역대가 평이합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+Change+Wale"},
-                {'title': "wild flower", 'level': "중", 'detail': "깊은 감성과 넓은 음역대 랩을 요구하여 표현력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+wild+flower"}
+                {'title': "wild flower", 'level': "중", 'detail': "깊은 감성과 넓은 음역대 랩을 요구하여 표현력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+wild+flower"},
                 {'title': "Seoul (Prod. HONNE)", 'level': "상", 'detail': "섬세한 감정 표현과 넓은 다이내믹 레인지를 요구하며, 느린 템포에서 집중력이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+RM+Seoul"}
             ]}            
         ]
