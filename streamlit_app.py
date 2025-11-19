@@ -39,8 +39,8 @@ VOICE_DATA = {
         'singers': [
             {'name': "정국", 'songs': [
                 {'title': "Seven (feat. Latto)", 'level': "하", 'detail': "쉬운 템포와 편안한 중음역 보컬로 리듬감을 연습하기 좋아요.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+정국+Seven"},
-                {'title': "Standing Next to You", 'level': "중", 'detail': "다이내믹한 고음과 리듬감이 요구되어 안정적인 발성이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+정국+Standing+Next+to+You"}
-            ]}
+                {'title': "Standing Next to You", 'level': "중", 'detail': "다이내믹한 고음과 리듬감이 요구되어 안정적인 발성이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=방탄소년단+정국+Standing+Next+to+You"},
+            ]},
             {'name': "태양", 'songs': [
                 {'title': "눈, 코, 입", 'level': "상", 'detail': "비교적 빠른 템포에 많은 가사가 붙어요. 고음역 후렴에서 진성과 가성을 넘나드는 목소리 전환 테크닉이 필요합니다.", 'link': "https://www.youtube.com/results?search_query=태양+눈코입"},
                 {'title': "VIBE", 'level': "중", 'detail': "높은 고음이 없거나 적은 편이지만, 리듬감과 딕션을 잘 살리는 것이 중요합니다.", 'link': "https://www.youtube.com/results?search_query=태양+VIBE"}
